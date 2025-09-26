@@ -102,7 +102,7 @@ function App() {
         <AuthProvider>
           <SettingsProvider>
             <Router 
-              basename={import.meta.env.MODE === 'production' ? '/yeouskin' : ''}
+              // basename={import.meta.env.MODE === 'production' ? '/yeouskin' : ''}
               future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
             >
               <RoutingHandler />

@@ -4,7 +4,8 @@ import path from 'path';
 
 export default defineConfig(({ command, mode }) => ({
   plugins: [react()],
-  base: mode === 'production' ? '/yeouskin/' : '/',
+  // base: mode === 'production' ? '/yeouskin/' : '/', // Local
+  base: '/', // Deploy
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
