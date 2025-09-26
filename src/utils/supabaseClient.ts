@@ -10,6 +10,9 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 export function createSafeSupabaseClient(): SupabaseClient {
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
+    global: {
+      headers: {},
+    },
   });
 }
 
