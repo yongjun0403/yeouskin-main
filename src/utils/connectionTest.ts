@@ -56,13 +56,14 @@ export const testDatabaseConnection = async (): Promise<ConnectionTestResult> =>
 
 export const testNetworkConnection = async (): Promise<ConnectionTestResult> => {
   try {
-    const response = await fetch('https://wysihrzbnxhfnymtnvzj.supabase.co/rest/v1/', {
+    const BASE = import.meta.env.VITE_SUPABASE_URL!;
+    const response = await fetch(`${BASE}/rest/v1/`, {
       method: 'GET',
       headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5c2locnpibnhoZm55bXRudnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MTI3MjUsImV4cCI6MjA2NjA4ODcyNX0.u4UNIJikLf529VE3TSSTBzngOQ_H6OHKaUeEwYa41fY',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5c2locnpibnhoZm55bXRudnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MTI3MjUsImV4cCI6MjA2NjA4ODcyNX0.u4UNIJikLf529VE3TSSTBzngOQ_H6OHKaUeEwYa41fY'
-      }
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY!,
+      },
     });
+
 
     if (!response.ok) {
       return {

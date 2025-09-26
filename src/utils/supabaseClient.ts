@@ -1,19 +1,13 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+// src/utils/supabaseClient.ts
+import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+const url = import.meta.env.VITE_SUPABASE_URL!;
+const anon = import.meta.env.VITE_SUPABASE_ANON_KEY!;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('[supabaseClient] Missing env', { SUPABASE_URL, hasAnonKey: !!SUPABASE_ANON_KEY });
+// 값 빠짐 디버그 로그
+if (!url || !anon) {
+  // eslint-disable-next-line no-console
+  console.error('[supabase] Missing env', { url, hasAnon: !!anon });
 }
 
-export function createSafeSupabaseClient(): SupabaseClient {
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
-    global: {
-      headers: {},
-    },
-  });
-}
-
-export const supabaseClient = createSafeSupabaseClient();
+export const supabaseClient = createClient(url, anon);

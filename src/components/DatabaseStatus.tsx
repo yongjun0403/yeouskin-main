@@ -77,12 +77,12 @@ const DatabaseStatus: React.FC = () => {
 
       // 2. 네트워크 연결 테스트
       try {
-        const response = await fetch('https://wysihrzbnxhfnymtnvzj.supabase.co/rest/v1/', {
+        const BASE = import.meta.env.VITE_SUPABASE_URL!;
+        const response = await fetch(`${BASE}/rest/v1/`, {
           method: 'GET',
           headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5c2locnpibnhoZm55bXRudnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MTI3MjUsImV4cCI6MjA2NjA4ODcyNX0.u4UNIJikLf529VE3TSSTBzngOQ_H6OHKaUeEwYa41fY',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5c2locnpibnhoZm55bXRudnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MTI3MjUsImV4cCI6MjA2NjA4ODcyNX0.u4UNIJikLf529VE3TSSTBzngOQ_H6OHKaUeEwYa41fY'
-          }
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY!,
+          },
         });
         detailedResults.push({ 
           test: '네트워크 연결', 
