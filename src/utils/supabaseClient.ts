@@ -1,54 +1,35 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-// GitHub Pages용 Supabase 연결 정보 (직접 명시)
-const SUPABASE_URL = 'https://wysihrzbnxhfnymtnvzj.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5c2locnpibnhoZm55bXRudnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MTI3MjUsImV4cCI6MjA2NjA4ODcyNX0.u4UNIJikLf529VE3TSSTBzngOQ_H6OHKaUeEwYa41fY';
+// ✅ Vite 환경변수만 사용 (하드코딩 금지)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// 안전한 Supabase 클라이언트 생성
-export const createSafeSupabaseClient = () => {
-  // 브라우저 환경 확인
-  if (typeof window === 'undefined') {
-    console.log('서버 환경에서 Supabase 클라이언트 초기화 건너뜀');
-    return null;
-  }
+// 값이 빠졌을 때 원인 파악을 돕기 위한 경고 로그(배포/개발 공통)
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  // 여기서 throw 하면 빌드/런타임이 바로 죽으니, 우선 경고만 남깁니다.
+  // 필요하면 throw new Error(...) 로 바꿔도 됩니다.
+  // eslint-disable-next-line no-console
+  console.error(
+    '[supabaseClient] Missing env: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY'
+  );
+}
 
-  // 개발 모드에서만 로그 출력
-  if (import.meta.env.DEV) {
-    console.log('Supabase 연결 정보 확인:', {
-      url: SUPABASE_URL,
-      hasAnonKey: !!SUPABASE_ANON_KEY,
-      status: 'GitHub Pages 배포용 직접 설정됨'
-    });
-  }
+// -------------------------------------------------------------
+// 안전한 Supabase 클라이언트 생성 (SPA 기준: null 반환 없음)
+//  - SSR을 안 쓰는 Vite SPA라면 window 가드/NULL 반환은 불필요
+// -------------------------------------------------------------
+export function createSafeSupabaseClient(): SupabaseClient {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  });
+}
 
-  if (!SUPABASE_ANON_KEY) {
-    console.error('Supabase Anon Key가 설정되지 않았습니다.');
-    return null;
-  }
-
-  try {
-    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: false,
-        storage: window.localStorage
-      },
-      global: {
-        headers: {},
-        fetch: window.fetch.bind(window)
-      }
-    });
-    
-    if (import.meta.env.DEV) {
-      console.log('Supabase 클라이언트 생성 성공');
-    }
-    return client;
-  } catch (error) {
-    console.error('Supabase 클라이언트 생성 실패:', error);
-    return null;
-  }
-};
-
-// 단일 인스턴스 생성
-export const supabaseClient = createSafeSupabaseClient(); 
+// -------------------------------------------------------------
+// 단일 인스턴스 생성 (공개 API는 이것만 사용)
+// - 다른 파일들: import { supabaseClient } from "@/utils/supabaseClient"
+// -------------------------------------------------------------
+export const supabaseClient = createSafeSupabaseClient();
