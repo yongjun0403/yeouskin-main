@@ -56,11 +56,14 @@ export const testDatabaseConnection = async (): Promise<ConnectionTestResult> =>
 
 export const testNetworkConnection = async (): Promise<ConnectionTestResult> => {
   try {
-    const BASE = import.meta.env.VITE_SUPABASE_URL!;
-    const response = await fetch(`${BASE}/rest/v1/`, {
+    const BASE_URL = import.meta.env.VITE_SUPABASE_URL!;
+    const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+
+    const response = await fetch(`${BASE_URL}/rest/v1/`, {
       method: 'GET',
       headers: {
-        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY!,
+        apikey: ANON_KEY,
+        Authorization: `Bearer ${ANON_KEY}`,
       },
     });
 

@@ -48,6 +48,6 @@ export default defineConfig(({ command, mode }) => ({
     global: 'globalThis',
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'],
+    include: ['react', 'react-dom', 'react-router-dom'],
   },
 })); 

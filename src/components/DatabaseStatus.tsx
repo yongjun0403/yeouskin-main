@@ -77,11 +77,13 @@ const DatabaseStatus: React.FC = () => {
 
       // 2. 네트워크 연결 테스트
       try {
-        const BASE = import.meta.env.VITE_SUPABASE_URL!;
-        const response = await fetch(`${BASE}/rest/v1/`, {
+        const BASE_URL = import.meta.env.VITE_SUPABASE_URL!;
+        const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+        const response = await fetch(`${BASE_URL}/rest/v1/`, {
           method: 'GET',
           headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY!,
+            apikey: ANON_KEY,
+            Authorization: `Bearer ${ANON_KEY}`,
           },
         });
         detailedResults.push({ 
