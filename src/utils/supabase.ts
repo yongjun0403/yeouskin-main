@@ -1,17 +1,24 @@
 import { supabaseClient } from './supabaseClient';
 
+// 🔍 Supabase 클라이언트 초기화 검증
+if (!supabaseClient) {
+  console.error('❌ Supabase 클라이언트가 null입니다!');
+  console.error('환경 변수를 확인하세요:', {
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? '✓ 존재함' : '✗ 없음'
+  });
+}
+
 // 안전한 Supabase 클라이언트 내보내기
 export const supabase = supabaseClient;
-if (!supabase) {
-  console.error('x supabase 인스턴스 null');}
 
-// Supabase 클라이언트 초기화 상태 로깅 (개발 모드에서만)
-if (typeof window !== 'undefined' && import.meta.env.DEV) {
-  console.log('Supabase 클라이언트 상태:', {
-    supabaseExists: !!supabase,
-    url: import.meta.env.VITE_SUPABASE_URL as string,
-    hasAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-    env: import.meta.env.MODE
+// 개발 모드에서 상세 로깅
+if (import.meta.env.DEV) {
+  console.log('🔧 Supabase 클라이언트 상태:', {
+    초기화됨: !!supabase,
+    URL: import.meta.env.VITE_SUPABASE_URL || '❌ 없음',
+    ANON_KEY_존재: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+    환경: import.meta.env.MODE
   });
 }
 
@@ -62,24 +69,46 @@ export interface SupabaseFinance {
   updated_at: string;
 }
 
+// 🛡️ API 호출 전 체크 헬퍼 함수
+const ensureSupabaseClient = () => {
+  if (!supabase) {
+    const error = new Error('❌ Supabase 클라이언트가 초기화되지 않았습니다. 환경 변수를 확인하세요.');
+    console.error(error.message);
+    console.error('현재 환경 변수:', {
+      VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || '❌ 설정 안됨',
+      VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? '✓ 존재' : '❌ 설정 안됨'
+    });
+    throw error;
+  }
+};
+
+// 🔍 에러 핸들링 헬퍼
+const handleError = (error: any, operation: string) => {
+  console.error(`❌ ${operation} 실패:`, error);
+  throw error;
+};
+
 // 고객 관련 함수
 export const customerApi = {
   // 모든 고객 조회
   async getAll() {
-    if (!supabase) throw new Error('Supabase 클라이언트가 초기화되지 않았습니다!!');
+    ensureSupabaseClient();
+    console.log('🔍 고객 목록 조회 중...');
     
     const { data, error } = await supabase
       .from('customers')
       .select('*')
       .order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) handleError(error, '고객 목록 조회');
+    console.log(`✅ 고객 ${data?.length || 0}명 조회 완료`);
     return data;
   },
 
   // 고객 추가
   async create(customer: Omit<SupabaseCustomer, 'id' | 'created_at' | 'updated_at'>) {
-    if (!supabase) throw new Error('Supabase 클라이언트가 초기화되지 않았습니다.');
+    ensureSupabaseClient();
+    console.log('➕ 고객 추가 중:', customer.name);
     
     const { data, error } = await supabase
       .from('customers')
@@ -87,12 +116,16 @@ export const customerApi = {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) handleError(error, '고객 추가');
+    console.log('✅ 고객 추가 완료:', data?.name);
     return data;
   },
 
   // 고객 수정
   async update(id: string, customer: Partial<SupabaseCustomer>) {
+    ensureSupabaseClient();
+    console.log('✏️ 고객 수정 중:', id);
+    
     const { data, error } = await supabase
       .from('customers')
       .update(customer)
@@ -100,60 +133,77 @@ export const customerApi = {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) handleError(error, '고객 수정');
+    console.log('✅ 고객 수정 완료');
     return data;
   },
 
   // 고객 삭제
   async delete(id: string) {
+    ensureSupabaseClient();
+    console.log('🗑️ 고객 삭제 중:', id);
+    
     const { error } = await supabase
       .from('customers')
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) handleError(error, '고객 삭제');
+    console.log('✅ 고객 삭제 완료');
   },
 
   // 고객 검색
   async search(query: string) {
+    ensureSupabaseClient();
+    console.log('🔍 고객 검색 중:', query);
+    
     const { data, error } = await supabase
       .from('customers')
       .select('*')
       .or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
       .order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) handleError(error, '고객 검색');
+    console.log(`✅ ${data?.length || 0}명 검색됨`);
     return data;
   }
 };
 
 // 상품 관련 함수
 export const productApi = {
-  // 모든 상품 조회
   async getAll() {
+    ensureSupabaseClient();
+    console.log('🔍 상품 목록 조회 중...');
+    
     const { data, error } = await supabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false });
     
-    if (error) throw error;
+    if (error) handleError(error, '상품 목록 조회');
+    console.log(`✅ 상품 ${data?.length || 0}개 조회 완료`);
     return data;
   },
 
-  // 상품 추가
   async create(product: Omit<SupabaseProduct, 'id' | 'created_at' | 'updated_at'>) {
+    ensureSupabaseClient();
+    console.log('➕ 상품 추가 중:', product.name);
+    
     const { data, error } = await supabase
       .from('products')
       .insert([product])
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) handleError(error, '상품 추가');
+    console.log('✅ 상품 추가 완료');
     return data;
   },
 
-  // 상품 수정
   async update(id: string, product: Partial<SupabaseProduct>) {
+    ensureSupabaseClient();
+    console.log('✏️ 상품 수정 중:', id);
+    
     const { data, error } = await supabase
       .from('products')
       .update(product)
@@ -161,60 +211,75 @@ export const productApi = {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) handleError(error, '상품 수정');
+    console.log('✅ 상품 수정 완료');
     return data;
   },
 
-  // 상품 삭제
   async delete(id: string) {
+    ensureSupabaseClient();
+    console.log('🗑️ 상품 삭제 중:', id);
+    
     const { error } = await supabase
       .from('products')
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) handleError(error, '상품 삭제');
+    console.log('✅ 상품 삭제 완료');
   }
 };
 
 // 예약 관련 함수
 export const appointmentApi = {
-  // 모든 예약 조회
   async getAll() {
+    ensureSupabaseClient();
+    console.log('🔍 예약 목록 조회 중...');
+    
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
       .order('datetime', { ascending: false });
     
-    if (error) throw error;
+    if (error) handleError(error, '예약 목록 조회');
+    console.log(`✅ 예약 ${data?.length || 0}건 조회 완료`);
     return data;
   },
 
-  // 고객별 예약 조회
   async getByCustomer(customerId: string) {
+    ensureSupabaseClient();
+    console.log('🔍 고객별 예약 조회 중:', customerId);
+    
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
       .eq('customer_id', customerId)
       .order('datetime', { ascending: false });
     
-    if (error) throw error;
+    if (error) handleError(error, '고객별 예약 조회');
+    console.log(`✅ ${data?.length || 0}건 조회 완료`);
     return data;
   },
 
-  // 예약 추가
   async create(appointment: Omit<SupabaseAppointment, 'id' | 'created_at' | 'updated_at'>) {
+    ensureSupabaseClient();
+    console.log('➕ 예약 추가 중');
+    
     const { data, error } = await supabase
       .from('appointments')
       .insert([appointment])
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) handleError(error, '예약 추가');
+    console.log('✅ 예약 추가 완료');
     return data;
   },
 
-  // 예약 수정
   async update(id: string, appointment: Partial<SupabaseAppointment>) {
+    ensureSupabaseClient();
+    console.log('✏️ 예약 수정 중:', id);
+    
     const { data, error } = await supabase
       .from('appointments')
       .update(appointment)
@@ -222,48 +287,60 @@ export const appointmentApi = {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) handleError(error, '예약 수정');
+    console.log('✅ 예약 수정 완료');
     return data;
   },
 
-  // 예약 삭제
   async delete(id: string) {
+    ensureSupabaseClient();
+    console.log('🗑️ 예약 삭제 중:', id);
+    
     const { error } = await supabase
       .from('appointments')
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) handleError(error, '예약 삭제');
+    console.log('✅ 예약 삭제 완료');
   }
 };
 
 // 재무 관련 함수
 export const financeApi = {
-  // 모든 재무 기록 조회
   async getAll() {
+    ensureSupabaseClient();
+    console.log('🔍 재무 기록 조회 중...');
+    
     const { data, error } = await supabase
       .from('finance')
       .select('*')
       .order('date', { ascending: false });
     
-    if (error) throw error;
+    if (error) handleError(error, '재무 기록 조회');
+    console.log(`✅ 재무 기록 ${data?.length || 0}건 조회 완료`);
     return data;
   },
 
-  // 재무 기록 추가
   async create(finance: Omit<SupabaseFinance, 'id' | 'created_at' | 'updated_at'>) {
+    ensureSupabaseClient();
+    console.log('➕ 재무 기록 추가 중:', finance.title);
+    
     const { data, error } = await supabase
       .from('finance')
       .insert([finance])
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) handleError(error, '재무 기록 추가');
+    console.log('✅ 재무 기록 추가 완료');
     return data;
   },
 
-  // 재무 기록 수정
   async update(id: string, finance: Partial<SupabaseFinance>) {
+    ensureSupabaseClient();
+    console.log('✏️ 재무 기록 수정 중:', id);
+    
     const { data, error } = await supabase
       .from('finance')
       .update(finance)
@@ -271,26 +348,33 @@ export const financeApi = {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) handleError(error, '재무 기록 수정');
+    console.log('✅ 재무 기록 수정 완료');
     return data;
   },
 
-  // 재무 기록 삭제
   async delete(id: string) {
+    ensureSupabaseClient();
+    console.log('🗑️ 재무 기록 삭제 중:', id);
+    
     const { error } = await supabase
       .from('finance')
       .delete()
       .eq('id', id);
     
-    if (error) throw error;
+    if (error) handleError(error, '재무 기록 삭제');
+    console.log('✅ 재무 기록 삭제 완료');
   },
 
-  // 월별 통계 조회
   async getMonthlyStats(yearMonth: string) {
+    ensureSupabaseClient();
+    console.log('📊 월별 통계 조회 중:', yearMonth);
+    
     const { data, error } = await supabase
       .rpc('get_monthly_finance_stats', { year_month: yearMonth });
     
-    if (error) throw error;
+    if (error) handleError(error, '월별 통계 조회');
+    console.log('✅ 월별 통계 조회 완료');
     return data;
   }
 };
@@ -334,4 +418,4 @@ export const transformFinance = (supabaseFinance: SupabaseFinance) => ({
   title: supabaseFinance.title,
   amount: supabaseFinance.amount,
   memo: supabaseFinance.memo,
-}); 
+});
