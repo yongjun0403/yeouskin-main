@@ -1,8 +1,8 @@
 // src/utils/supabaseClient.ts
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const url  = import.meta.env.VITE_SUPABASE_URL!;
-const anon = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+const url  = import.meta.env.VITE_SUPABASE_URL as string;
+const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 // 1) ENV 주입 확인 로그
 console.log('[supabase] boot', { url, anonLoaded: !!anon });

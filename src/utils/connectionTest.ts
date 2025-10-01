@@ -56,8 +56,8 @@ export const testDatabaseConnection = async (): Promise<ConnectionTestResult> =>
 
 export const testNetworkConnection = async (): Promise<ConnectionTestResult> => {
   try {
-    const BASE_URL = import.meta.env.VITE_SUPABASE_URL!;
-    const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+    const BASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+    const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
     const response = await fetch(`${BASE_URL}/rest/v1/`, {
       method: 'GET',
@@ -106,8 +106,8 @@ export const getConnectionDiagnostics = async () => {
     network: await testNetworkConnection(),
     environment: {
       mode: import.meta.env.MODE,
-      hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
-      hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+      hasSupabaseUrl: import.meta.env.VITE_SUPABASE_URL as string,
+      hasSupabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
       nodeEnv: import.meta.env.NODE_ENV,
       userAgent: navigator.userAgent
     }

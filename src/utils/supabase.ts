@@ -9,8 +9,8 @@ if (!supabase) {
 if (typeof window !== 'undefined' && import.meta.env.DEV) {
   console.log('Supabase 클라이언트 상태:', {
     supabaseExists: !!supabase,
-    url: import.meta.env.VITE_SUPABASE_URL,
-    hasAnonKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+    url: import.meta.env.VITE_SUPABASE_URL as string,
+    hasAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
     env: import.meta.env.MODE
   });
 }

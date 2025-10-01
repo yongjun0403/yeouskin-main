@@ -1,151 +1,202 @@
-import React, { useState, useEffect } from 'react';
-import { supabaseMCP } from '../utils/supabaseMCP';
-import { SupabaseConnectionStatus, SupabaseSchemaInfo, SupabaseTestData } from '../types';
+import { createClient } from '@supabase/supabase-js';
+import { 
+  SupabaseConnectionStatus, 
+  SupabaseSchemaInfo, 
+  SupabaseTestData, 
+  SupabaseQueryResult,
+  Customer,
+  Appointment,
+  Product,
+  FinanceRecord
+} from '../types';
 
-const SupabaseMCPTest: React.FC = () => {
-  const [connectionStatus, setConnectionStatus] = useState<string>('테스트 중...');
-  const [schemaInfo, setSchemaInfo] = useState<SupabaseSchemaInfo | null>(null);
-  const [testData, setTestData] = useState<SupabaseTestData | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [lastTestTime, setLastTestTime] = useState<string>('');
+// Supabase MCP 연결 설정
+export class SupabaseMCP {
+  private supabase: any;
+  private isConnected: boolean = false;
 
-  useEffect(() => {
-    testConnection();
-  }, []);
+  constructor() {
+    // GitHub Pages용 직접 설정
+    const BASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+    const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-  const testConnection = async () => {
-    setLoading(true);
-    try {
-      const result: SupabaseConnectionStatus = await supabaseMCP.testConnection();
-      setConnectionStatus(result.message);
-      setLastTestTime(result.timestamp || new Date().toISOString());
-      
-      if (result.success) {
-        const schema: SupabaseSchemaInfo = await supabaseMCP.getSchemaInfo();
-        setSchemaInfo(schema);
-      }
-    } catch (error) {
-      setConnectionStatus(`연결 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
-      setLastTestTime(new Date().toISOString());
-    } finally {
-      setLoading(false);
+    if (!BASE_URL || !ANON_KEY) {
+      throw new Error('Supabase 환경변수가 누락되었습니다.');
     }
-  };
 
-  const testDataRetrieval = async () => {
-    setLoading(true);
+    this.supabase = createClient(BASE_URL, ANON_KEY, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined
+      },
+      global: {
+        headers: {},
+        fetch: typeof window !== 'undefined' ? window.fetch.bind(window) : undefined
+      }
+    });
+  }
+
+  // 연결 테스트
+  async testConnection(): Promise<SupabaseConnectionStatus> {
     try {
-      const data: SupabaseTestData = await supabaseMCP.getTestData();
-      setTestData(data);
+      const { data, error } = await this.supabase
+        .from('customers')
+        .select('count')
+        .limit(1);
+
+      if (error) {
+        throw error;
+      }
+
+      this.isConnected = true;
+      return { 
+        success: true, 
+        message: 'Supabase 연결 성공',
+        timestamp: new Date().toISOString()
+      };
     } catch (error) {
-      setTestData({ 
+      this.isConnected = false;
+      return { 
+        success: false, 
+        message: `연결 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  // 데이터베이스 스키마 정보 가져오기
+  async getSchemaInfo(): Promise<SupabaseSchemaInfo> {
+    try {
+      const { data, error } = await this.supabase
+        .rpc('get_schema_info');
+
+      if (error) {
+        // RPC 함수가 없는 경우 기본 테이블 정보 반환
+        return {
+          tables: ['customers', 'products', 'appointments', 'finance', 'settings'],
+          message: '기본 테이블 정보',
+          version: '1.0.0'
+        };
+      }
+
+      return data;
+    } catch (error) {
+      return {
+        tables: ['customers', 'products', 'appointments', 'finance', 'settings'],
+        message: '기본 테이블 정보 (오류 발생)',
+        version: '1.0.0'
+      };
+    }
+  }
+
+  // 고객 데이터 조회
+  async getCustomers(): Promise<SupabaseQueryResult<Customer>> {
+    try {
+      const { data, error } = await this.supabase
+        .from('customers')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return { success: true, data, count: data?.length || 0 };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : '알 수 없는 오류' 
+      };
+    }
+  }
+
+  // 예약 데이터 조회
+  async getAppointments(): Promise<SupabaseQueryResult<Appointment>> {
+    try {
+      const { data, error } = await this.supabase
+        .from('appointments')
+        .select(`
+          *,
+          customers(name, phone),
+          products(name, price)
+        `)
+        .order('datetime', { ascending: false });
+
+      if (error) throw error;
+      return { success: true, data, count: data?.length || 0 };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : '알 수 없는 오류' 
+      };
+    }
+  }
+
+  // 상품 데이터 조회
+  async getProducts(): Promise<SupabaseQueryResult<Product>> {
+    try {
+      const { data, error } = await this.supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return { success: true, data, count: data?.length || 0 };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : '알 수 없는 오류' 
+      };
+    }
+  }
+
+  // 재무 데이터 조회
+  async getFinance(): Promise<SupabaseQueryResult<FinanceRecord>> {
+    try {
+      const { data, error } = await this.supabase
+        .from('finance')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      return { success: true, data, count: data?.length || 0 };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : '알 수 없는 오류' 
+      };
+    }
+  }
+
+  // 연결 상태 확인
+  getConnectionStatus(): boolean {
+    return this.isConnected;
+  }
+
+  // 데이터 테스트 결과
+  async getTestData(): Promise<SupabaseTestData> {
+    try {
+      const customers = await this.getCustomers();
+      const appointments = await this.getAppointments();
+      const products = await this.getProducts();
+      const finance = await this.getFinance();
+
+      return {
+        customers: customers.success ? customers.count || 0 : '오류',
+        appointments: appointments.success ? appointments.count || 0 : '오류',
+        products: products.success ? products.count || 0 : '오류',
+        finance: finance.success ? finance.count || 0 : '오류'
+      };
+    } catch (error) {
+      return { 
         customers: '오류',
         appointments: '오류',
         products: '오류',
         finance: '오류',
         error: error instanceof Error ? error.message : '알 수 없는 오류'
-      });
-    } finally {
-      setLoading(false);
+      };
     }
-  };
+  }
+}
 
-  const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('ko-KR');
-  };
-
-  return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Supabase MCP 연결 테스트</h2>
-      
-      <div className="space-y-4">
-        {/* 연결 상태 */}
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">연결 상태</h3>
-          <div className="flex items-center space-x-2 mb-2">
-            <div className={`w-3 h-3 rounded-full ${
-              connectionStatus.includes('성공') ? 'bg-green-500' : 
-              connectionStatus.includes('오류') ? 'bg-red-500' : 'bg-yellow-500'
-            }`}></div>
-            <span className={connectionStatus.includes('성공') ? 'text-green-600' : 
-                          connectionStatus.includes('오류') ? 'text-red-600' : 'text-yellow-600'}>
-              {connectionStatus}
-            </span>
-          </div>
-          {lastTestTime && (
-            <p className="text-xs text-gray-500">
-              마지막 테스트: {formatTimestamp(lastTestTime)}
-            </p>
-          )}
-        </div>
-
-        {/* 스키마 정보 */}
-        {schemaInfo && (
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">데이터베이스 스키마</h3>
-            <div className="text-sm text-gray-700">
-              <p><strong>테이블:</strong> {schemaInfo.tables?.join(', ') || '정보 없음'}</p>
-              <p><strong>메시지:</strong> {schemaInfo.message}</p>
-              {schemaInfo.version && (
-                <p><strong>버전:</strong> {schemaInfo.version}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 데이터 테스트 */}
-        <div className="p-4 bg-green-50 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">데이터 조회 테스트</h3>
-          <button
-            onClick={testDataRetrieval}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-          >
-            {loading ? '테스트 중...' : '데이터 조회 테스트'}
-          </button>
-          
-          {testData && (
-            <div className="mt-3 text-sm">
-              {testData.error ? (
-                <div className="text-red-600">
-                  <p><strong>오류:</strong> {testData.error}</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2 text-gray-700">
-                  <p><strong>고객:</strong> {testData.customers}개</p>
-                  <p><strong>예약:</strong> {testData.appointments}개</p>
-                  <p><strong>상품:</strong> {testData.products}개</p>
-                  <p><strong>재무:</strong> {testData.finance}개</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* 재연결 버튼 */}
-        <div className="p-4 bg-yellow-50 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">연결 재시도</h3>
-          <button
-            onClick={testConnection}
-            disabled={loading}
-            className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50"
-          >
-            {loading ? '재연결 중...' : '연결 재시도'}
-          </button>
-        </div>
-
-        {/* 연결 정보 */}
-        <div className="p-4 bg-purple-50 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">연결 정보</h3>
-          <div className="text-sm text-gray-700">
-            <p><strong>URL:</strong> {import.meta.env.VITE_SUPABASE_URL || '설정되지 않음'}</p>
-            <p><strong>상태:</strong> {supabaseMCP.getConnectionStatus() ? '연결됨' : '연결 안됨'}</p>
-            <p><strong>환경:</strong> {import.meta.env.MODE}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default SupabaseMCPTest; 
+// 싱글톤 인스턴스 생성
+export const supabaseMCP = new SupabaseMCP(); 

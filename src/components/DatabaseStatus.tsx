@@ -69,16 +69,16 @@ const DatabaseStatus: React.FC = () => {
       // 1. 환경변수 확인
       const envInfo = {
         mode: import.meta.env.MODE,
-        hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
-        hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+        hasSupabaseUrl: import.meta.env.VITE_SUPABASE_URL as string,
+        hasSupabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
         nodeEnv: import.meta.env.NODE_ENV
       };
       detailedResults.push({ test: '환경변수 확인', status: '✅', details: envInfo });
 
       // 2. 네트워크 연결 테스트
       try {
-        const BASE_URL = import.meta.env.VITE_SUPABASE_URL!;
-        const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY!;
+        const BASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+        const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
         const response = await fetch(`${BASE_URL}/rest/v1/`, {
           method: 'GET',
           headers: {
